@@ -1,43 +1,43 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import taskRoutes from "./routes/taskRoutes.js"; // Import routes
 import cors from "cors";
-import aiRoutes from "./routes/aiRoutes.js"; // Optional: To enable cross-origin requests (for React frontend)
 
-// Load environment variables from .env file
+import taskRoutes from "./routes/taskRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+
+// Load environment variables
 dotenv.config();
 
-// Create an Express app
 const app = express();
 
-// Middleware to parse JSON requests
-app.use(express.json());
-app.use("/api/ai", aiRoutes);
-
-// Enable Cross-Origin Requests (CORS) for React to interact with the backend
+// Enable CORS (IMPORTANT: must come before routes)
 app.use(
   cors({
-    origin: "http://localhost:5174", // Allow requests from this frontend (React app)
-    methods: "GET, POST", // Allowed HTTP methods
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
   }),
 );
 
-// MongoDB connection string from .env
+// Middleware to parse JSON
+app.use(express.json());
+
+// Routes
+app.use("/api/ai", aiRoutes);
+app.use("/tasks", taskRoutes);
+
+// MongoDB connection
 const mongoURI =
   process.env.MONGO_URI || "mongodb://localhost:27017/taskManager";
 
-// Connect to MongoDB
 mongoose
-  .connect(mongoURI) // No need for useNewUrlParser or useUnifiedTopology anymore
+  .connect(mongoURI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Use taskRoutes to handle /tasks endpoint
-app.use("/tasks", taskRoutes);
-
-// Define port and start the server
+// Start server
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
