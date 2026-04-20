@@ -24,10 +24,6 @@ This is a backend application for a Task Management System built using **Node.js
 
 ---
 
-
-
----
-
 ## ⚙️ Installation & Setup
 
 ### 1. Clone the repository
@@ -46,3 +42,54 @@ npm install
 ### 3. Run the server
 
 ```bash
+npm start
+```
+
+---
+
+## 📡 API Endpoints
+
+Task Routes
+
+| Method | Endpoint       | Description     |
+| ------ | -------------- | --------------- |
+| POST   | /api/tasks     | Create a task   |
+| GET    | /api/tasks     | Get all tasks   |
+| GET    | /api/tasks/:id | Get single task |
+| PUT    | /api/tasks/:id | Update task     |
+| DELETE | /api/tasks/:id | Delete task     |
+
+AI Routes
+
+| Method | Endpoint         | Description                     |
+| ------ | ---------------- | ------------------------------- |
+| POST   | /api/ai/generate | Generate description & priority |
+
+---
+
+## 🤖 AI Feature
+
+When creating a task, the system can automatically:
+
+Generate a meaningful description
+Assign a priority level (Low / Medium / High)
+
+This is powered by the Gemini API.
+
+---
+
+## 🧪 Testing
+
+The project includes both Unit Testing and Integration Testing.
+
+Run tests
+
+```bash
+npm test
+```
+
+---
+
+## 👨‍💻 Author
+
+Dinushika Nishadini
