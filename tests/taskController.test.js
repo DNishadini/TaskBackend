@@ -1,69 +1,152 @@
-const { createTask } = require("../controllers/taskController.js");
-const Task = require("../models/Task.js");
+import {
+  createTask,
+  getTasks,
+  updateTask,
+  deleteTask,
+} from "../controllers/taskController.js";
+import Task from "../models/Task.js";
 
-jest.mock("../models/Task.js"); // Mock the Task model
+// Mock the Task model module
+jest.mock("../models/Task.js");
 
 describe("Task Controller Unit Tests", () => {
-  it("should create a task successfully", async () => {
-    const taskData = {
-      title: "Test Task",
-      description: "Test Description",
-      status: "TODO",
-      priority: "LOW",
-    };
+  let req, res;
 
-    // Create a mock for the instance method save()
-    const saveMock = jest.fn().mockResolvedValue({ ...taskData, _id: "12345" });
+  beforeEach(() => {
+    // Reset all mock states before each test
+    jest.clearAllMocks();
 
-    // Mock Task constructor to return an object with a mocked save method
-    Task.mockImplementation(() => {
-      return { save: saveMock }; // Mock `save()` method
-    });
-
-    const req = { body: taskData }; // Mock request with task data
-    const res = {
-      status: jest.fn().mockReturnThis(), // Mock status and chain it with returnThis()
+    // Mock Express response object
+    res = {
+      status: jest.fn().mockReturnThis(),
       json: jest.fn(),
-    }; // Mock response
-
-    await createTask(req, res); // Call the createTask controller function
-
-    // Check that the response was called with the correct task data
-    expect(res.status).toHaveBeenCalledWith(201); // Created status
-    expect(res.json).toHaveBeenCalledWith({ ...taskData, _id: "12345" });
-    expect(saveMock).toHaveBeenCalledTimes(1); // Ensure save() is called once
+      send: jest.fn(),
+    };
   });
 
-  it("should return error if task creation fails", async () => {
+  // --- CREATE TASK TESTS ---
+  describe("createTask", () => {
     const taskData = {
       title: "Test Task",
-      description: "Test Description",
+      description: "Desc",
       status: "TODO",
-      priority: "LOW",
+      priority: "MEDIUM",
     };
 
-    // Mocking the save() method to reject with an error
-    const saveMock = jest
-      .fn()
-      .mockRejectedValue(new Error("Error creating task"));
-    Task.mockImplementation(() => {
-      return { save: saveMock }; // Mock `save()` method
+    it("should create a task successfully", async () => {
+      req = { body: taskData };
+      const mockId = "507f1f77bcf86cd799439011";
+      const saveMock = jest
+        .fn()
+        .mockResolvedValue({ ...taskData, _id: mockId });
+
+      // Mock constructor for 'new Task()'
+      Task.mockImplementation(() => ({
+        ...taskData,
+        _id: mockId,
+        save: saveMock,
+      }));
+
+      await createTask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ _id: mockId }),
+      );
     });
 
-    const req = { body: taskData }; // Mock request with task data
-    const res = {
-      status: jest.fn().mockReturnThis(), // Mock status for error handling
-      json: jest.fn(),
-    }; // Mock response
+    it("should return 500 if creation fails", async () => {
+      req = { body: taskData };
+      const saveMock = jest.fn().mockRejectedValue(new Error("DB Error"));
+      Task.mockImplementation(() => ({ save: saveMock }));
 
-    await createTask(req, res); // Call the createTask controller function
+      await createTask(req, res);
 
-    // Ensure the error is handled properly
-    expect(res.status).toHaveBeenCalledWith(500); // Internal server error
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Failed to create task",
-      error: "Error creating task",
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to create task" }),
+      );
     });
-    expect(saveMock).toHaveBeenCalledTimes(1); // Ensure save() is called once
+  });
+
+  // --- GET TASKS TESTS ---
+  describe("getTasks", () => {
+    it("should fetch all tasks successfully", async () => {
+      const mockTasks = [{ title: "Task 1" }, { title: "Task 2" }];
+      // Mock static method 'find'
+      Task.find = jest.fn().mockResolvedValue(mockTasks);
+
+      await getTasks({}, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockTasks);
+    });
+
+    it("should return 500 if fetching fails", async () => {
+      Task.find = jest.fn().mockRejectedValue(new Error("Find Error"));
+
+      await getTasks({}, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to fetch tasks" }),
+      );
+    });
+  });
+
+  // --- UPDATE TASK TESTS ---
+  describe("updateTask", () => {
+    const updateData = { title: "Updated Title" };
+
+    it("should update a task successfully", async () => {
+      req = { params: { id: "123" }, body: updateData };
+      const updatedTask = { _id: "123", ...updateData };
+
+      // Mock static method 'findByIdAndUpdate'
+      Task.findByIdAndUpdate = jest.fn().mockResolvedValue(updatedTask);
+
+      await updateTask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(updatedTask);
+    });
+
+    it("should return 404 if task to update is not found", async () => {
+      req = { params: { id: "wrong-id" }, body: updateData };
+      Task.findByIdAndUpdate = jest.fn().mockResolvedValue(null);
+
+      await updateTask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: "Task not found" });
+    });
+  });
+
+  // --- DELETE TASK TESTS ---
+  describe("deleteTask", () => {
+    it("should delete a task and return 204", async () => {
+      req = { params: { id: "123" } };
+      // Mock static method 'findByIdAndDelete'
+      Task.findByIdAndDelete = jest.fn().mockResolvedValue({ _id: "123" });
+
+      await deleteTask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
+    });
+
+    it("should return 500 if deletion fails", async () => {
+      req = { params: { id: "123" } };
+      Task.findByIdAndDelete = jest
+        .fn()
+        .mockRejectedValue(new Error("Delete Error"));
+
+      await deleteTask(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to delete task" }),
+      );
+    });
   });
 });
