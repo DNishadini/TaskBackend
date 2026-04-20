@@ -2,7 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import taskRoutes from "./routes/taskRoutes.js"; // Import routes
-import cors from "cors"; // Optional: To enable cross-origin requests (for React frontend)
+import cors from "cors";
+import aiRoutes from "./routes/aiRoutes.js"; // Optional: To enable cross-origin requests (for React frontend)
 
 // Load environment variables from .env file
 dotenv.config();
@@ -12,9 +13,15 @@ const app = express();
 
 // Middleware to parse JSON requests
 app.use(express.json());
+app.use("/api/ai", aiRoutes);
 
 // Enable Cross-Origin Requests (CORS) for React to interact with the backend
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5174", // Allow requests from this frontend (React app)
+    methods: "GET, POST", // Allowed HTTP methods
+  }),
+);
 
 // MongoDB connection string from .env
 const mongoURI =
